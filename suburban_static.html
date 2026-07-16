@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MESH-X1 - Suburban Geofence Workspace</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #7cd118;
+            --primary-glow: rgba(124, 209, 24, 0.2);
+            --danger: #ef4444;
+            --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: #0f172a;
+            color: #0f172a;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Centered Mobile Screen Container without physical phone shell chassis */
+        .mobile-screen {
+            position: relative;
+            width: 390px;
+            height: 844px;
+            background: #ffffff;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* iOS Top Status Bar */
+        .status-bar {
+            height: 44px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #000000;
+            background: #ffffff;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-right svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        /* Navigation Header */
+        .nav-header {
+            height: 56px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 10;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f172a;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        .nav-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.015em;
+        }
+
+        .header-placeholder {
+            width: 40px;
+        }
+
+        /* Map Area */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #cbd5e1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Floating controls inside map */
+        .map-controls {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 5;
+        }
+
+        .zoom-box {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .zoom-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: #0f172a;
+        }
+
+        .zoom-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.5;
+        }
+
+        .zoom-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.05);
+            margin: 0 6px;
+        }
+
+        .control-circle {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .control-circle:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+            color: #0f172a;
+        }
+
+        .control-circle svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.2;
+        }
+
+        /* Glassmorphic Bottom Sheet */
+        .bottom-sheet {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 20px 18px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 5;
+            box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.1);
+        }
+
+        .sheet-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+
+        /* Radius Slider styles */
+        .radius-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radius-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .radius-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .radius-value-container {
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+        }
+
+        .radius-number {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .radius-unit {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* Slider Track */
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-bar-bg {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            z-index: 1;
+        }
+
+        .slider-bar-fill {
+            position: absolute;
+            left: 0;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 3px;
+            z-index: 2;
+            width: 36%; /* Default 1.8km of 5.0km */
+        }
+
+        .slider-handle {
+            position: absolute;
+            left: calc(36% - 14px);
+            width: 28px;
+            height: 28px;
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.15);
+            z-index: 3;
+            cursor: pointer;
+        }
+
+        .slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 4px;
+            margin-top: -4px;
+        }
+
+        .tick-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Monitor Group Card */
+        .group-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .group-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .group-subtitle {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-top: -4px;
+        }
+
+        /* Custom Selector Dropdown */
+        .custom-dropdown {
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 48px;
+        }
+
+        .dropdown-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-text {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .avatar-row {
+            display: flex;
+        }
+
+        .avatar-pill {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #ffffff;
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: -4px;
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+            text-transform: uppercase;
+        }
+
+        .pill-k { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .pill-m { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .pill-t { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .pill-x { background: linear-gradient(135deg, #10b981, #059669); }
+        .pill-y { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        /* Published Success Button */
+        .btn-publish {
+            width: 100%;
+            height: 48px;
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-publish:hover {
+            background-color: #6bb612;
+        }
+
+        .btn-publish svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+        }
+
+        /* Real Leaflet marker design styles */
+        .custom-member-icon {
+            background: none;
+            border: none;
+        }
+
+        .member-marker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 34px;
+            height: 36px;
+        }
+
+        .member-pin-inner {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            z-index: 2;
+        }
+
+        .member-pin-body {
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            background: #ffffff;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--primary);
+        }
+
+        .member-pin-center {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #ffffff;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            text-transform: uppercase;
+        }
+
+        .member-pin-shadow {
+            position: absolute;
+            bottom: -6px;
+            left: 7px;
+            width: 20px;
+            height: 8px;
+            background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.35) 0%, rgba(15, 23, 42, 0) 80%);
+            z-index: 1;
+        }
+
+        /* Pulsing Ring for Active Inside Coordinates */
+        .member-pulse-ring {
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2.5px solid var(--primary);
+            opacity: 0;
+            z-index: 0;
+            transform: scale(0.85);
+        }
+
+        /* State Inside: Green Border and Pulsing Rings */
+        .state-inside .member-pin-body {
+            border-color: var(--primary);
+            background: #ffffff;
+        }
+        
+        .state-inside .member-pulse-ring {
+            animation: beacon-pulse-active 2.4s infinite ease-out;
+        }
+
+        @keyframes beacon-pulse-active {
+            0% { transform: scale(0.7); opacity: 0; }
+            10% { opacity: 0.55; }
+            80% { opacity: 0; }
+            100% { transform: scale(1.45); opacity: 0; }
+        }
+
+        /* State Outside: Solid Red Background (Outline border is thin white to offset roads) */
+        .state-outside .member-pin-body {
+            border-color: #ffffff;
+            background: var(--danger);
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .state-outside .member-pin-center {
+            background: none !important;
+            box-shadow: none !important;
+            color: #ffffff !important;
+        }
+
+        .state-outside .member-pulse-ring {
+            animation: none;
+            opacity: 0;
+        }
+
+        /* Alert badge on the top right of pins outside */
+        .member-alert-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            background: var(--danger);
+            color: #ffffff;
+            border: 1.5px solid #ffffff;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 800;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .state-outside .member-alert-badge {
+            display: flex;
+        }
+
+        /* Center Coordinate Pin */
+        .center-pin-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 44px;
+            height: 46px;
+        }
+
+        .center-pin-body {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            z-index: 2;
+        }
+
+        .center-pin-inner {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3.5px solid #ffffff;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .center-pin-icon-wrap {
+            transform: rotate(45deg);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .center-pin-icon-wrap svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Centered mobile viewport without physically rendering the mock bezel frame -->
+    <div class="mobile-screen">
+        <!-- iOS Top Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-right">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="14" width="3" height="6" rx="0.5"/>
+                    <rect x="8" y="11" width="3" height="9" rx="0.5"/>
+                    <rect x="13" y="8" width="3" height="12" rx="0.5"/>
+                    <rect x="18" y="5" width="3" height="15" rx="0.5"/>
+                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5a1 1 0 1 0 0 .1"/>
+                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="16" height="10" rx="2"/>
+                    <path d="M20 11v2" stroke-linecap="round"/>
+                    <rect x="4" y="9" width="10" height="6" rx="1" fill="currentColor"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="nav-header">
+            <button class="back-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width: 20px; height: 20px;">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <h1 class="nav-title">Add Geofence</h1>
+            <div class="header-placeholder"></div>
+        </header>
+
+        <!-- Map Workspace -->
+        <div class="map-container">
+            <div id="map"></div>
+
+            <!-- Floating map controls -->
+            <div class="map-controls">
+                <div class="zoom-box">
+                    <div class="zoom-btn" id="zoomInBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="zoom-divider"></div>
+                    <div class="zoom-btn" id="zoomOutBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                    </div>
+                </div>
+                <div class="control-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="control-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="control-circle" style="display: flex;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="9" stroke-dasharray="3 3" />
+                        <path d="M12 7a3 3 0 0 0-3 3c0 2.2 3 6 3 6s3-3.8 3-6a3 3 0 0 0-3-3z" fill="currentColor"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Bottom Sheet -->
+        <div class="bottom-sheet">
+            <h2 class="sheet-title">Geofence Settings</h2>
+
+            <!-- Radius slider -->
+            <div class="radius-section">
+                <div class="radius-header">
+                    <span class="radius-label">Geofence Radius</span>
+                    <div class="radius-value-container">
+                        <span class="radius-number" id="radiusText">1.80</span>
+                        <span class="radius-unit">km</span>
+                    </div>
+                </div>
+                
+                <div class="slider-wrapper" id="sliderWrapper">
+                    <div class="slider-bar-bg"></div>
+                    <div class="slider-bar-fill" id="sliderFill"></div>
+                    <div class="slider-handle" id="sliderHandle"></div>
+                </div>
+
+                <div class="slider-ticks">
+                    <span class="tick-label">0</span>
+                    <span class="tick-label">1km</span>
+                    <span class="tick-label">2km</span>
+                    <span class="tick-label">3km</span>
+                    <span class="tick-label">4km</span>
+                    <span class="tick-label">5km</span>
+                </div>
+            </div>
+
+            <!-- Monitor Group Info -->
+            <div class="group-section">
+                <span class="group-title">Monitor Group</span>
+                <span class="group-subtitle">Select group chat, auto enroll all members</span>
+                
+                <div class="custom-dropdown">
+                    <div class="dropdown-left">
+                        <span class="dropdown-text">Team Alpha</span>
+                    </div>
+                    <div class="avatar-row">
+                        <div class="avatar-pill pill-k">K</div>
+                        <div class="avatar-pill pill-m">M</div>
+                        <div class="avatar-pill pill-x">X</div>
+                        <div class="avatar-pill pill-t">T</div>
+                        <div class="avatar-pill pill-y">Y</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Published successfully button -->
+            <button class="btn-publish">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Published Successfully
+            </button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const suburbanCenter = [42.1190, 2.7580];
+        
+        // Members coordinates
+        const membersData = [
+            { id: 'K', coords: [42.1220, 2.7500], colorClass: 'pill-k' },
+            { id: 'M', coords: [42.1260, 2.7660], colorClass: 'pill-m' },
+            { id: 'T', coords: [42.1240, 2.7550], colorClass: 'pill-t' },
+            { id: 'X', coords: [42.1380, 2.7750], colorClass: 'pill-x' },
+            { id: 'Y', coords: [42.1320, 2.7300], colorClass: 'pill-y' }
+        ];
+
+        // Initialize Leaflet Map
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(suburbanCenter, 13);
+
+        // Add Premium Map Tiles (CartoDB Voyager)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20
+        }).addTo(map);
+
+        // Custom Center Pin Icon
+        const centerIcon = L.divIcon({
+            className: 'custom-center-pin',
+            html: `
+                <div class="center-pin-container">
+                    <div class="center-pin-body">
+                        <div class="center-pin-inner">
+                            <div class="center-pin-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M21 3L3 10.5L11.5 13.5L14.5 22L21 3Z" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            iconSize: [44, 46],
+            iconAnchor: [22, 46]
+        });
+
+        // Place Center Marker
+        const centerMarker = L.marker(suburbanCenter, { icon: centerIcon }).addTo(map);
+
+        // Add Animated Geofence Circle
+        const geofenceCircle = L.circle(suburbanCenter, {
+            radius: 1800, // Default 1.8km in meters
+            color: '#7cd118',
+            fillColor: '#7cd118',
+            fillOpacity: 0.16,
+            weight: 2.5,
+            dashArray: '12 8'
+        }).addTo(map);
+
+        // Custom Member Markers
+        const memberMarkers = [];
+
+        // Mount all member markers to map
+        membersData.forEach(m => {
+            const mIcon = L.divIcon({
+                className: 'custom-member-icon',
+                html: `
+                    <div class="member-marker-container state-inside" id="marker-${m.id}">
+                        <div class="member-pulse-ring"></div>
+                        <div class="member-pin-inner">
+                            <div class="member-pin-body">
+                                <div class="member-pin-center ${m.colorClass}">${m.id}</div>
+                            </div>
+                            <div class="member-pin-shadow"></div>
+                        </div>
+                        <div class="member-alert-badge">!</div>
+                    </div>
+                `,
+                iconSize: [34, 36],
+                iconAnchor: [17, 36]
+            });
+
+            const markerObj = L.marker(m.coords, { icon: mIcon }).addTo(map);
+            memberMarkers.push({
+                id: m.id,
+                coords: m.coords,
+                marker: markerObj
+            });
+        });
+
+        // Zoom controls
+        document.getElementById('zoomInBtn').addEventListener('click', () => map.zoomIn());
+        document.getElementById('zoomOutBtn').addEventListener('click', () => map.zoomOut());
+
+        // Range slider drag controller logic
+        const sliderWrapper = document.getElementById('sliderWrapper');
+        const sliderFill = document.getElementById('sliderFill');
+        const sliderHandle = document.getElementById('sliderHandle');
+        const radiusText = document.getElementById('radiusText');
+
+        let isDragging = false;
+
+        function updateSliderFromPosition(clientX) {
+            const rect = sliderWrapper.getBoundingClientRect();
+            let percent = ((clientX - rect.left) / rect.width) * 100;
+            percent = Math.max(0, Math.min(100, percent));
+
+            // Max radius is 5.0 km
+            const radiusValue = (percent / 100) * 5.0;
+            
+            // Limit to minimum 0.1 km
+            const finalRadius = Math.max(0.1, radiusValue);
+            const displayPercent = (finalRadius / 5.0) * 100;
+
+            sliderFill.style.width = `${displayPercent}%`;
+            sliderHandle.style.left = `calc(${displayPercent}% - 14px)`;
+            radiusText.textContent = finalRadius.toFixed(2);
+
+            // Update Leaflet geofence circle radius
+            const radiusInMeters = finalRadius * 1000;
+            geofenceCircle.setRadius(radiusInMeters);
+
+            // Verify each member coordinates relative to geofence circle
+            memberMarkers.forEach(item => {
+                const distance = map.distance(suburbanCenter, item.coords);
+                const el = document.getElementById(`marker-${item.id}`);
+                if (el) {
+                    if (distance <= radiusInMeters) {
+                        el.classList.remove('state-outside');
+                        el.classList.add('state-inside');
+                    } else {
+                        el.classList.remove('state-inside');
+                        el.classList.add('state-outside');
+                    }
+                }
+            });
+        }
+
+        sliderHandle.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                updateSliderFromPosition(e.clientX);
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support
+        sliderHandle.addEventListener('touchstart', (e) => {
+            isDragging = true;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length > 0) {
+                updateSliderFromPosition(e.touches[0].clientX);
+            }
+        });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Click track support
+        sliderWrapper.addEventListener('click', (e) => {
+            if (e.target !== sliderHandle) {
+                updateSliderFromPosition(e.clientX);
+            }
+        });
+
+        // Initialize state on load
+        window.addEventListener('load', () => {
+            // Apply default radius value (1.80) to all marker states
+            const currentVal = parseFloat(radiusText.textContent) || 1.80;
+            
+            // Force status check on pins
+            const radiusInMeters = currentVal * 1000;
+            memberMarkers.forEach(item => {
+                const distance = map.distance(suburbanCenter, item.coords);
+                const el = document.getElementById(`marker-${item.id}`);
+                if (el) {
+                    if (distance <= radiusInMeters) {
+                        el.classList.remove('state-outside');
+                        el.classList.add('state-inside');
+                    } else {
+                        el.classList.remove('state-inside');
+                        el.classList.add('state-outside');
+                    }
+                }
+            });
+
+            // Center map with circles in view
+            setTimeout(() => {
+                map.panBy([0, 60], { animate: true, duration: 1.0 });
+            }, 600);
+        });
+    </script>
+</body>
+</html>

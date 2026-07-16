@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Geofence Demo Showcase</title>
+    <!-- Beautiful Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for real map rendering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #7cd118;
+            --primary-light: rgba(124, 209, 24, 0.15);
+            --primary-pulse: rgba(124, 209, 24, 0.4);
+            --background: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        /* Glassmorphic Switching Tab Bar at the top of the webpage */
+        .mode-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 6px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 24px;
+            gap: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            user-select: none;
+            z-index: 200;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.65);
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Screenshot Button */
+        .screenshot-btn {
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .screenshot-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .screenshot-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Container Frame */
+        .phone-frame {
+            width: 390px;
+            height: 800px;
+            background: #ffffff;
+            border-radius: 0;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-inner {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 0;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* iOS Status Bar */
+        .status-bar {
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px 0;
+            background: #ffffff;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #000000;
+            z-index: 90;
+            user-select: none;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-bar svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Navigation Header */
+        .nav-header {
+            height: 52px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid #f1f5f9;
+            z-index: 90;
+            position: relative;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: #0f172a;
+        }
+
+        .nav-title {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #000000;
+            letter-spacing: -0.01em;
+        }
+
+        .header-placeholder {
+            width: 36px;
+        }
+
+        /* Map Workspace Area */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background-color: #f4f3f0;
+            overflow: hidden;
+            width: 100%;
+            z-index: 1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Mild saturation boost on the Google Maps tile layer only, leaving overlay circle and marker untouched */
+        .leaflet-tile-pane {
+            filter: saturate(1.22) contrast(1.02);
+        }
+
+        /* Floating Controls shifted exactly to the top-right corner of the map container area */
+        .map-controls {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            user-select: none;
+        }
+
+        .zoom-box {
+            width: 36px;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+        }
+
+        .zoom-btn {
+            width: 100%;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .zoom-btn svg { width: 14px; height: 14px; stroke-width: 2.5; }
+        .zoom-divider { width: 24px; height: 1px; background: rgba(226, 232, 240, 0.6); }
+
+        .control-circle {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            color: #64748b;
+            cursor: pointer;
+        }
+        .control-circle svg { width: 14px; height: 14px; stroke-width: 2.2; }
+
+        /* Custom Leaflet Marker container overrides */
+        .demo-marker-container {
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+            transform: scale(0);
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .demo-marker-container.visible {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .pin-inner {
+            width: 44px;
+            height: 46px;
+            position: relative;
+            z-index: 10;
+            filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.15));
+        }
+
+        .pin-body {
+            width: 44px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0.5px solid rgba(0, 0, 0, 0.03);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .pin-center {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 50%;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+        }
+
+        .pin-center svg {
+            width: 16px;
+            height: 16px;
+            fill: #ffffff;
+            stroke: #ffffff;
+            stroke-width: 2;
+        }
+
+        .pin-shadow {
+            width: 12px;
+            height: 4px;
+            background: rgba(15, 23, 42, 0.35);
+            border-radius: 50%;
+            filter: blur(0.5px);
+            position: absolute;
+            bottom: 0;
+            left: 16px;
+            z-index: 1;
+        }
+
+        /* Pulse / Wave effect */
+        .pin-pulse {
+            position: absolute;
+            top: 23px;
+            left: 22px;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-pulse);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0.6);
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .pulse-2 {
+            animation-delay: 1.2s;
+        }
+
+        @keyframes beacon-pulse-active {
+            0% {
+                transform: translate(-50%, -50%) scale(0.6);
+                opacity: 0.85;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3.0);
+                opacity: 0;
+            }
+        }
+
+        /* Member Map Marker styles representing live team positions */
+        .custom-member-icon {
+            overflow: visible !important;
+        }
+
+        .member-marker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 34px;
+            height: 38px;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+            transform: scale(0);
+            opacity: 0;
+            overflow: visible !important;
+        }
+
+        .member-marker-container.visible {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* Mini Teardrop Pin body wrapper matching main coordinates background structure */
+        .member-pin-inner {
+            position: relative;
+            width: 34px;
+            height: 36px;
+            z-index: 10;
+            filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.12));
+        }
+
+        .member-pin-body {
+            width: 34px;
+            height: 34px;
+            background: #ffffff;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+
+        .member-pin-center {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: bold;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+        }
+
+        .member-pin-shadow {
+            width: 10px;
+            height: 3px;
+            background: rgba(15, 23, 42, 0.35);
+            border-radius: 50%;
+            filter: blur(0.5px);
+            position: absolute;
+            bottom: 0;
+            left: 12px;
+            z-index: 1;
+        }
+
+        /* Warning alert indicator badge on the top right.
+           Set z-index to 20 to ensure it renders on top of the teardrop pin (which has z-index 10) */
+        .member-alert-badge {
+            position: absolute;
+            top: -4px;
+            right: -2px;
+            width: 13px;
+            height: 13px;
+            background: #ef4444;
+            border: 1px solid #ffffff;
+            border-radius: 50%;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 8px;
+            font-weight: 900;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        /* Pulsing warning aura behind the alert pin */
+        .member-pulse-ring {
+            position: absolute;
+            top: 0;
+            left: 3px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            z-index: 0;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* State Outside (Warning Alert) */
+        .state-outside .member-pin-body {
+            background: #ef4444;
+            border: 1.5px solid #ffffff;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+        .state-outside .member-alert-badge {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .state-outside .member-pulse-ring {
+            opacity: 1;
+            animation: member-warning-pulse-active 1.6s infinite ease-out;
+        }
+
+        @keyframes member-warning-pulse-active {
+            0% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7);
+                opacity: 0.95;
+            }
+            100% {
+                transform: scale(1.8);
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+                opacity: 0;
+            }
+        }
+
+        /* State Inside (Normal/Safe state - No green border, just standard default gray border) */
+        .state-inside .member-pin-body {
+            background: #ffffff;
+            border: 0.5px solid rgba(0, 0, 0, 0.08);
+            box-shadow: none;
+        }
+
+        /* Seamless Leaflet Geofence SVG Animation style bindings */
+        .geofence-animated {
+            fill: var(--primary);
+            fill-opacity: 0;
+            stroke: var(--primary);
+            stroke-width: 0;
+            stroke-linecap: round;
+            stroke-dasharray: 16 8;
+            stroke-dashoffset: 0;
+            transition: stroke-width 0.6s ease, fill-opacity 0.6s ease;
+        }
+
+        @keyframes geofence-dash-march {
+            to { stroke-dashoffset: -24; }
+        }
+
+        @keyframes geofence-fill-breathe {
+            0%, 100% { fill-opacity: 0.14; }
+            50%       { fill-opacity: 0.30; }
+        }
+
+        .geofence-animated.active-anim {
+            stroke-width: 2.5;
+            fill-opacity: 0.16;
+            animation: 
+                geofence-dash-march 2s linear infinite,
+                geofence-fill-breathe 3.2s ease-in-out infinite;
+        }
+
+        /* Bottom Sheet - Floating glassmorphic card layout */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 28px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            padding: 20px 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 30;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            transform: translateY(115%);
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .sheet-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #000000;
+            letter-spacing: -0.02em;
+        }
+
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sheet-close-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .sheet-close-btn:hover {
+            background: rgba(0, 0, 0, 0.12);
+            color: #0f172a;
+        }
+
+        .sheet-close-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke-width: 2.5;
+        }
+
+        /* Slider and Labels */
+        .radius-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .radius-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .radius-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+
+        .radius-value-container {
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+        }
+
+        .radius-number {
+            font-size: 1.7rem;
+            font-weight: bold;
+            color: #000000;
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+
+        .radius-unit {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* Customized Slider Track */
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .slider-bar-bg {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            z-index: 1;
+        }
+
+        .slider-bar-fill {
+            position: absolute;
+            left: 0;
+            height: 6px;
+            background: var(--primary);
+            border-radius: 3px;
+            z-index: 2;
+            width: 21.6%; /* Matches default */
+            transition: none;
+        }
+
+        .slider-handle {
+            position: absolute;
+            left: calc(21.6% - 14px);
+            width: 28px;
+            height: 28px;
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.15);
+            z-index: 3;
+            cursor: pointer;
+            transition: none;
+        }
+
+        .slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 4px;
+            margin-top: -4px;
+        }
+
+        .tick-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* Group Card */
+        .group-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .group-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+
+        .group-subtitle {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-top: -4px;
+        }
+
+        .team-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+        }
+
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .team-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+
+        .avatar-row {
+            display: flex;
+            padding-left: 0;
+        }
+
+        .avatar-pill {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #ffffff;
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: -4px;
+            box-shadow: 0 2px 4px rgba(15, 23, 42, 0.05);
+            text-transform: uppercase;
+        }
+
+        .pill-k { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .pill-m { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .pill-x { background: linear-gradient(135deg, #10b981, #059669); }
+        .pill-t { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .pill-y { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .btn-publish {
+            width: 100%;
+            height: 48px;
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(124, 209, 24, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            letter-spacing: -0.01em;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .control-circle {
+            transition: all 0.2s ease;
+        }
+
+        .control-circle:hover {
+            background: #ffffff;
+            color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(124, 209, 24, 0.15);
+        }
+
+        /* Modal Overlay styled inside .phone-inner */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #0f172a;
+            text-align: center;
+            margin: 0;
+        }
+
+        .modal-description {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: center;
+            margin: 0 0 4px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            width: 100%;
+            height: 44px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn.primary {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(124, 209, 24, 0.2);
+        }
+
+        .modal-btn.primary:hover {
+            background: #6ea515;
+            transform: translateY(-1px);
+        }
+
+        .modal-btn.secondary {
+            background: rgba(0, 0, 0, 0.05);
+            color: #0f172a;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .modal-btn.secondary:hover {
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+            cursor: pointer;
+            text-align: center;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #64748b;
+        }
+
+        /* Custom dropdown styling */
+        .select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-trigger {
+            width: 100%;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 0 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .dropdown-trigger:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .custom-dropdown.active .dropdown-trigger {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 0 0 3px rgba(124, 209, 24, 0.15);
+        }
+
+        .arrow-icon {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.3s ease;
+            color: #64748b;
+        }
+
+        .custom-dropdown.active .arrow-icon {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 6px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .custom-dropdown.active .dropdown-options {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .dropdown-options .option {
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .dropdown-options .option:hover {
+            background: rgba(124, 209, 24, 0.1);
+            color: #55930e;
+        }
+
+        .dropdown-options .option.selected {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        /* Modal specific trigger style */
+        .modal-card .dropdown-trigger {
+            height: 44px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .modal-card .custom-dropdown.active .dropdown-trigger {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .modal-divider-text {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-align: center;
+            margin: 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        /* Floating Team Card styled to expand in place */
+        .team-float-card {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            height: 72px; /* Collapsed state */
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+            z-index: 95;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            opacity: 0;
+            transform: translateY(120%);
+        }
+
+        .team-float-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .team-float-card.expanded {
+            height: 460px; /* Expanded state */
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .float-card-header {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .team-float-card.expanded .float-card-header {
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .float-header-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+
+        .float-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .float-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .float-arrow-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .float-arrow-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        .float-arrow-icon {
+            width: 16px;
+            height: 16px;
+            color: #64748b;
+            stroke-width: 2.5;
+            transition: transform 0.4s ease;
+        }
+
+        .team-float-card.expanded .float-arrow-icon {
+            transform: rotate(180deg); /* points down */
+        }
+
+        .float-card-content {
+            flex: 1;
+            padding: 12px 18px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .member-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .member-avatar-wrapper {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Avatar styling with double dotted rings */
+        .member-avatar-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            border: 1.5px dotted transparent;
+        }
+
+        .member-avatar-wrapper.state-inside::before {
+            border-color: #8ce12c;
+            animation: rotate-dotted 12s linear infinite;
+        }
+
+        .member-avatar-wrapper.state-outside::before {
+            border-color: #ef4444;
+            animation: rotate-dotted 12s linear infinite;
+        }
+
+        @keyframes rotate-dotted {
+            100% { transform: rotate(360deg); }
+        }
+
+        .member-avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #7cd118;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid currentColor;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .member-avatar-wrapper.state-inside .member-avatar-circle {
+            color: #7cd118;
+            background: rgba(124, 209, 24, 0.1);
+        }
+
+        .member-avatar-wrapper.state-outside .member-avatar-circle {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .member-avatar-wrapper.add {
+            border: 1.5px dashed #cbd5e1;
+            color: #64748b;
+            background: rgba(0, 0, 0, 0.02);
+            cursor: pointer;
+        }
+
+        .member-avatar-wrapper.add svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .member-details {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .member-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .member-item.add-member .member-name {
+            color: #64748b;
+        }
+
+        .member-status-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+        }
+
+        .member-status-badge.inside {
+            color: #55930e;
+            background: rgba(124, 209, 24, 0.12);
+            border-color: rgba(124, 209, 24, 0.2);
+        }
+
+        .member-status-badge.outside {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Ringtone item */
+        .ringtone-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .ringtone-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ringtone-icon {
+            width: 18px;
+            height: 18px;
+            color: #ef4444;
+        }
+
+        .ringtone-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .ringtone-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #64748b;
+        }
+
+        .ringtone-value {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .chevron-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Warning alert box */
+        .alert-warning-box {
+            background: rgba(239, 68, 68, 0.04);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 16px;
+            padding: 12px 14px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .alert-warning-box .warning-icon {
+            width: 18px;
+            height: 18px;
+            color: #ef4444;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .warning-text-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .warning-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #e11d48;
+            margin: 0;
+            line-height: 1.3;
+            text-align: left;
+        }
+
+        .warning-desc {
+            font-size: 0.7rem;
+            color: #f43f5e;
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.4;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Switching Tab Bar at the top of the webpage (outside phone frame) -->
+    <div class="mode-tabs">
+        <button class="tab-btn active" id="tab-suburban" onclick="changeMode('suburban')">Suburban Mode (Banyoles Lake)</button>
+        <button class="tab-btn" id="tab-urban" onclick="changeMode('urban')">Urban Street Mode (Barcelona Center)</button>
+        <button class="tab-btn" id="tab-existing" onclick="changeMode('existing')">Team Tracking Mode (Existing Geofence)</button>
+    </div>
+
+    <!-- Screenshot Button -->
+    <button class="screenshot-btn" id="screenshotBtn" title="Capture Screenshot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Capture Screenshot
+    </button>
+
+    <!-- Phone container frame -->
+    <div class="phone-frame">
+
+        <div class="phone-inner">
+            <!-- iOS Top Status Bar -->
+            <div class="status-bar">
+                <span>9:41</span>
+                <div class="status-right">
+                    <!-- Cellular Signal SVG -->
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="14" width="3" height="6" rx="0.5"/>
+                        <rect x="8" y="11" width="3" height="9" rx="0.5"/>
+                        <rect x="13" y="8" width="3" height="12" rx="0.5"/>
+                        <rect x="18" y="5" width="3" height="15" rx="0.5"/>
+                    </svg>
+                    <!-- Wifi Signal -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5a1 1 0 1 0 0 .1"/>
+                    </svg>
+                    <!-- Battery Shape -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="16" height="10" rx="2"/>
+                        <path d="M20 11v2" stroke-linecap="round"/>
+                        <rect x="4" y="9" width="10" height="6" rx="1" fill="currentColor"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <header class="nav-header">
+                <button class="back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width: 20px; height: 20px;">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <h1 class="nav-title">Add Geofence</h1>
+                <div class="header-placeholder"></div>
+            </header>
+
+            <!-- Map Workspace Area -->
+            <div class="map-container">
+                <!-- Real Leaflet Map mount target -->
+                <div id="map"></div>
+
+                <!-- Floating map controls -->
+                <div class="map-controls">
+                    <div class="zoom-box">
+                        <div class="zoom-btn" id="zoomInBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="zoom-divider"></div>
+                        <div class="zoom-btn" id="zoomOutBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                        </div>
+                    </div>
+                    <div class="control-circle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="control-circle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="control-circle" id="geofenceBtn" title="电子围栏">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <circle cx="12" cy="12" r="9" stroke-dasharray="3 3" />
+                            <path d="M12 7a3 3 0 0 0-3 3c0 2.2 3 6 3 6s3-3.8 3-6a3 3 0 0 0-3-3z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Bottom Sheet (Floating Glass Card) -->
+            <div class="bottom-sheet" id="bottomSheet">
+                <div class="sheet-header">
+                    <h2 class="sheet-title">Geofence Settings</h2>
+                    <button class="sheet-close-btn" id="sheetCloseBtn" title="Close">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
+                            <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Radius Setting -->
+                <div class="radius-section" id="radiusSection">
+                    <div class="radius-header">
+                        <span class="radius-label">Geofence Radius</span>
+                        <div class="radius-value-container">
+                            <span class="radius-number" id="radiusText">1.08</span>
+                            <span class="radius-unit">km</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Customized Progress Slider Simulator -->
+                    <div class="slider-wrapper" id="sliderWrapper">
+                        <div class="slider-bar-bg"></div>
+                        <div class="slider-bar-fill" id="sliderFill"></div>
+                        <div class="slider-handle" id="sliderHandle"></div>
+                    </div>
+
+                    <div class="slider-ticks">
+                        <span class="tick-label">0</span>
+                        <span class="tick-label">1km</span>
+                        <span class="tick-label">2km</span>
+                        <span class="tick-label">3km</span>
+                        <span class="tick-label">4km</span>
+                        <span class="tick-label">5km</span>
+                    </div>
+                </div>
+
+                <!-- Monitor Group Info -->
+                <div class="group-section">
+                    <span class="group-title">Monitor Group</span>
+                    <span class="group-subtitle">Select group chat, auto enroll all members</span>
+                    
+                    <div class="select-wrapper">
+                        <!-- Custom select dropdown instead of native select -->
+                        <div class="custom-dropdown" id="teamSelectDropdown">
+                            <div class="dropdown-trigger" id="teamSelectTrigger">
+                                <span class="selected-val">Select Team</span>
+                                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="dropdown-options" id="teamSelectOptions">
+                                <div class="option" data-value="alpha">Team Alpha</div>
+                            </div>
+                        </div>
+                        <div class="avatar-row" id="teamAvatars" style="display: none; margin-top: 8px;">
+                            <div class="avatar-pill pill-k">K</div>
+                            <div class="avatar-pill pill-m">M</div>
+                            <div class="avatar-pill pill-x">X</div>
+                            <div class="avatar-pill pill-t">T</div>
+                            <div class="avatar-pill pill-y">Y</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Publish Action -->
+                <button class="btn-publish" id="publishBtn">Publish Geofence</button>
+            </div>
+
+            <!-- Floating Team Info Card (Image 1 & 2) -->
+            <div class="team-float-card" id="teamFloatCard">
+                <div class="float-card-header" id="teamFloatHeader">
+                    <div class="float-header-text">
+                        <h3 class="float-title">Alpha Team</h3>
+                        <p class="float-subtitle">4/5 Inside Geofence</p>
+                    </div>
+                    <div class="float-arrow-btn">
+                        <svg class="float-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="18 15 12 9 6 15" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="float-card-content" id="teamFloatContent">
+                    <div class="member-list">
+                        <!-- Member Alpha-9 -->
+                        <div class="member-item">
+                            <div class="member-avatar-wrapper state-inside">
+                                <div class="member-avatar-circle">A</div>
+                            </div>
+                            <div class="member-details">
+                                <span class="member-name">Alpha-9</span>
+                                <span class="member-status-badge inside">Inside Geofence</span>
+                            </div>
+                        </div>
+                        <!-- Member Alpha-8 -->
+                        <div class="member-item">
+                            <div class="member-avatar-wrapper state-inside">
+                                <div class="member-avatar-circle">A</div>
+                            </div>
+                            <div class="member-details">
+                                <span class="member-name">Alpha-8</span>
+                                <span class="member-status-badge inside">Inside Geofence</span>
+                            </div>
+                        </div>
+                        <!-- Member Alpha-7 -->
+                        <div class="member-item">
+                            <div class="member-avatar-wrapper state-outside">
+                                <div class="member-avatar-circle">A</div>
+                            </div>
+                            <div class="member-details">
+                                <span class="member-name">Alpha-7</span>
+                                <span class="member-status-badge outside">Outside Geofence</span>
+                            </div>
+                        </div>
+                        <!-- Add Member -->
+                        <div class="member-item add-member">
+                            <div class="member-avatar-wrapper add">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </div>
+                            <span class="member-name">New member</span>
+                        </div>
+                    </div>
+                    
+                    <div class="ringtone-row">
+                        <div class="ringtone-left">
+                            <svg class="ringtone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            <span class="ringtone-label">Alert Ringtone</span>
+                        </div>
+                        <div class="ringtone-right">
+                            <span class="ringtone-value">Alert 1</span>
+                            <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="alert-warning-box">
+                        <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>
+                        </svg>
+                        <div class="warning-text-container">
+                            <h4 class="warning-title">Push triggered by boundary crossing / heartbeat loss</h4>
+                            <p class="warning-desc">Out-of-geofence OR no heartbeat packets for 3 consecutive minutes · Mobile push only? Disable device vibration</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geofence Options Modal -->
+            <div class="modal-overlay" id="geofenceModal">
+                <div class="modal-card">
+                    <h3 class="modal-title">Geofence Options</h3>
+                    <p class="modal-description">Choose an action to configure geofencing:</p>
+                    
+                    <div class="modal-buttons">
+                        <button class="modal-btn primary" id="btnCreateFence">Create Geofence</button>
+                        
+                        <div class="modal-divider-text">or select existing</div>
+                        
+                        <!-- Modal custom dropdown, taking 100% width, with a dropdown arrow icon -->
+                        <div class="custom-dropdown" id="modalSelectDropdown" style="width: 100%;">
+                            <div class="dropdown-trigger" id="modalSelectTrigger">
+                                <span class="selected-val">Alpha team</span>
+                                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="dropdown-options" id="modalSelectOptions">
+                                <div class="option selected" data-value="alpha">Alpha team</div>
+                                <div class="option" data-value="beta">Beta team</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="modal-close" id="btnCloseModal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS CDN Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- Static Geofence Demo Script (no auto-animation) -->
+    <script>
+        // Configuration sets for Suburban, Urban Street, and Existing modes
+        const configs = {
+            suburban: {
+                center: [42.1190, 2.7580],
+                zoom: 13,
+                maxRadius: 5.0,
+                unit: 'km',
+                initialRadius: 1.08,
+                ticks: ['0', '1km', '2km', '3km', '4km', '5km'],
+                members: [
+                    { id: 'K', coords: [42.1220, 2.7500], colorClass: 'pill-k' },
+                    { id: 'M', coords: [42.1260, 2.7660], colorClass: 'pill-m' },
+                    { id: 'T', coords: [42.1240, 2.7550], colorClass: 'pill-t' },
+                    { id: 'X', coords: [42.1380, 2.7750], colorClass: 'pill-x' },
+                    { id: 'Y', coords: [42.1320, 2.7300], colorClass: 'pill-y' }
+                ]
+            },
+            urban: {
+                center: [41.3879, 2.1698],
+                zoom: 15,
+                maxRadius: 1000,
+                unit: 'm',
+                initialRadius: 250,
+                ticks: ['0', '200m', '400m', '600m', '800m', '1km'],
+                members: [
+                    { id: 'K', coords: [41.3895, 2.1685], colorClass: 'pill-k' },
+                    { id: 'M', coords: [41.3910, 2.1720], colorClass: 'pill-m' },
+                    { id: 'T', coords: [41.3890, 2.1710], colorClass: 'pill-t' },
+                    { id: 'X', coords: [41.3923, 2.1712], colorClass: 'pill-x' },
+                    { id: 'Y', coords: [41.3925, 2.1685], colorClass: 'pill-y' }
+                ]
+            },
+            existing: {
+                center: [42.1190, 2.7580],
+                zoom: 13,
+                maxRadius: 5.0,
+                unit: 'km',
+                initialRadius: 1.80,
+                ticks: ['0', '1km', '2km', '3km', '4km', '5km'],
+                members: [
+                    { id: 'K', coords: [42.1220, 2.7500], colorClass: 'pill-k' },
+                    { id: 'M', coords: [42.1260, 2.7660], colorClass: 'pill-m' },
+                    { id: 'T', coords: [42.1240, 2.7550], colorClass: 'pill-t' },
+                    { id: 'X', coords: [42.1380, 2.7750], colorClass: 'pill-x' },
+                    { id: 'Y', coords: [42.1320, 2.7300], colorClass: 'pill-y' }
+                ]
+            }
+        };
+
+        let currentMode = 'suburban';
+
+        // Initialize Real Leaflet Map
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView(configs.suburban.center, configs.suburban.zoom);
+
+        L.tileLayer('https://{s}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&scale=2&apistyle=s.t:2|p.v:off', {
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            maxZoom: 20,
+            tileSize: 256,
+            zoomOffset: 0
+        }).addTo(map);
+
+        // Custom divIcon for center pin marker
+        const customMarkerIcon = L.divIcon({
+            className: 'demo-marker-container',
+            html: `
+                <div class="pin-inner">
+                    <div class="pin-body">
+                        <div class="pin-center">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M21 3L3 10.5L11.5 13.5L14.5 22L21 3Z" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="pin-shadow"></div>
+                </div>
+                <div class="pin-pulse pulse-1" id="pinPulse1"></div>
+                <div class="pin-pulse pulse-2" id="pinPulse2"></div>
+            `,
+            iconSize: [44, 46],
+            iconAnchor: [22, 46]
+        });
+
+        const marker = L.marker(configs.suburban.center, { icon: customMarkerIcon }).addTo(map);
+
+        const memberMarkers = [];
+
+        const geofenceCircle = L.circle(configs.suburban.center, {
+            radius: 1080,
+            color: '#7cd118',
+            fillColor: '#7cd118',
+            fillOpacity: 0.16,
+            weight: 2.5,
+            dashArray: '16 8',
+            className: 'geofence-animated'
+        }).addTo(map);
+
+        // Bind map zoom controls
+        document.getElementById('zoomInBtn').addEventListener('click', () => map.zoomIn());
+        document.getElementById('zoomOutBtn').addEventListener('click', () => map.zoomOut());
+
+        // DOM control targets
+        const bottomSheet = document.getElementById('bottomSheet');
+        const sliderFill = document.getElementById('sliderFill');
+        const sliderHandle = document.getElementById('sliderHandle');
+        const sliderWrapper = document.getElementById('sliderWrapper');
+        const radiusText = document.getElementById('radiusText');
+        const publishBtn = document.getElementById('publishBtn');
+
+        // Helper to initialize custom dropdowns
+        function initCustomDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            const trigger = dropdown.querySelector('.dropdown-trigger');
+            const options = dropdown.querySelectorAll('.option');
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-dropdown').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('active');
+                });
+                dropdown.classList.toggle('active');
+            });
+
+            options.forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const val = opt.getAttribute('data-value');
+                    const label = opt.textContent;
+
+                    trigger.setAttribute('data-value', val);
+                    trigger.querySelector('.selected-val').textContent = label;
+
+                    options.forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+
+                    dropdown.classList.remove('active');
+
+                    const event = new Event('change');
+                    dropdown.dispatchEvent(event);
+                });
+            });
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
+        });
+
+        // Mock elements for compatibility
+        const teamSelect = {
+            get value() {
+                const trigger = document.getElementById('teamSelectTrigger');
+                return trigger.getAttribute('data-value') || "";
+            },
+            set value(val) {
+                const trigger = document.getElementById('teamSelectTrigger');
+                const span = trigger.querySelector('.selected-val');
+                trigger.setAttribute('data-value', val);
+                if (val === "alpha") {
+                    span.textContent = "Team Alpha";
+                    document.querySelectorAll('#teamSelectOptions .option').forEach(opt => {
+                        if (opt.getAttribute('data-value') === 'alpha') opt.classList.add('selected');
+                        else opt.classList.remove('selected');
+                    });
+                } else {
+                    span.textContent = "Select Team";
+                    document.querySelectorAll('#teamSelectOptions .option').forEach(opt => opt.classList.remove('selected'));
+                }
+            },
+            addEventListener(event, callback) {
+                document.getElementById('teamSelectDropdown').addEventListener(event, callback);
+            },
+            dispatchEvent(event) {
+                document.getElementById('teamSelectDropdown').dispatchEvent(event);
+            }
+        };
+
+        const selExistingFence = {
+            get value() {
+                const trigger = document.getElementById('modalSelectTrigger');
+                return trigger.getAttribute('data-value') || "";
+            },
+            set value(val) {
+                const trigger = document.getElementById('modalSelectTrigger');
+                const span = trigger.querySelector('.selected-val');
+                trigger.setAttribute('data-value', val);
+                if (val === "alpha") {
+                    span.textContent = "Alpha team";
+                    document.querySelectorAll('#modalSelectOptions .option').forEach(opt => {
+                        if (opt.getAttribute('data-value') === 'alpha') opt.classList.add('selected');
+                        else opt.classList.remove('selected');
+                    });
+                } else if (val === "beta") {
+                    span.textContent = "Beta team";
+                    document.querySelectorAll('#modalSelectOptions .option').forEach(opt => {
+                        if (opt.getAttribute('data-value') === 'beta') opt.classList.add('selected');
+                        else opt.classList.remove('selected');
+                    });
+                } else {
+                    span.textContent = "Alpha team";
+                    document.querySelectorAll('#modalSelectOptions .option').forEach(opt => {
+                        if (opt.getAttribute('data-value') === 'alpha') opt.classList.add('selected');
+                        else opt.classList.remove('selected');
+                    });
+                }
+            },
+            addEventListener(event, callback) {
+                document.getElementById('modalSelectDropdown').addEventListener(event, callback);
+            },
+            dispatchEvent(event) {
+                document.getElementById('modalSelectDropdown').dispatchEvent(event);
+            }
+        };
+
+        // Show geofence state immediately (no animation)
+        function showGeofenceState() {
+            const cfg = configs[currentMode];
+
+            map.setView(cfg.center, cfg.zoom, { animate: false });
+            map.panBy([0, 140], { animate: true, duration: 0.6 });
+
+            // Show center pin
+            const markerEl = marker.getElement();
+            if (markerEl) {
+                markerEl.classList.add('visible');
+                const p1 = markerEl.querySelector('#pinPulse1');
+                const p2 = markerEl.querySelector('#pinPulse2');
+                if (p1 && p2) {
+                    p1.style.animation = 'beacon-pulse-active 2.4s infinite ease-out';
+                    p2.style.animation = 'beacon-pulse-active 2.4s infinite ease-out';
+                }
+            }
+
+            // Show geofence circle
+            geofenceCircle.setStyle({
+                weight: 2.5,
+                fillOpacity: 0.16
+            });
+            const circlePathEl = geofenceCircle.getElement();
+            if (circlePathEl) {
+                circlePathEl.classList.add('active-anim');
+            }
+
+            // Show member markers
+            cfg.members.forEach(m => {
+                const el = document.getElementById(`marker-${m.id}`);
+                if (el) el.classList.add('visible');
+            });
+
+            if (currentMode === 'existing') {
+                const teamFloatCard = document.getElementById('teamFloatCard');
+                if (teamFloatCard) {
+                    teamFloatCard.classList.add('visible');
+                }
+                bottomSheet.style.transform = 'translateY(115%)';
+            } else {
+                bottomSheet.style.transform = 'translateY(0)';
+            }
+
+            updateSliderUI(cfg.initialRadius);
+            publishBtn.innerHTML = "Publish Geofence";
+        }
+
+        // Switch Modes
+        function changeMode(mode) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (mode === 'suburban') {
+                document.getElementById('tab-suburban').classList.add('active');
+            } else if (mode === 'urban') {
+                document.getElementById('tab-urban').classList.add('active');
+            } else if (mode === 'existing') {
+                document.getElementById('tab-existing').classList.add('active');
+            }
+
+            // Remove previous member markers
+            memberMarkers.forEach(item => map.removeLayer(item.marker));
+            memberMarkers.length = 0;
+
+            const cfg = configs[mode];
+
+            // Re-mount member markers for current mode
+            cfg.members.forEach(m => {
+                const mIcon = L.divIcon({
+                    className: 'custom-member-icon',
+                    html: `
+                        <div class="member-marker-container state-inside visible" id="marker-${m.id}">
+                            <div class="member-pulse-ring"></div>
+                            <div class="member-pin-inner">
+                                <div class="member-pin-body">
+                                    <div class="member-pin-center ${m.colorClass}">${m.id}</div>
+                                </div>
+                                <div class="member-pin-shadow"></div>
+                            </div>
+                            <div class="member-alert-badge">!</div>
+                        </div>
+                    `,
+                    iconSize: [34, 36],
+                    iconAnchor: [17, 36]
+                });
+
+                const markerObj = L.marker(m.coords, { icon: mIcon }).addTo(map);
+                memberMarkers.push({
+                    id: m.id,
+                    coords: m.coords,
+                    marker: markerObj
+                });
+            });
+
+            // Update tick labels
+            const ticksContainer = document.querySelector('.slider-ticks');
+            ticksContainer.innerHTML = cfg.ticks.map(t => `<span class="tick-label">${t}</span>`).join('');
+
+            // Update unit label
+            document.querySelector('.radius-unit').textContent = cfg.unit;
+
+            // Relocate center and geofence circle
+            marker.setLatLng(cfg.center);
+            geofenceCircle.setLatLng(cfg.center);
+
+            // Show/Hide geofence button
+            const geofenceBtn = document.getElementById('geofenceBtn');
+            if (mode === 'suburban' || mode === 'existing') {
+                geofenceBtn.style.display = 'flex';
+            } else {
+                geofenceBtn.style.display = 'none';
+            }
+
+            // Immediately show the geofence state
+            showGeofenceState();
+        }
+
+        // Update slider UI and geofence circle
+        function updateSliderUI(value) {
+            const cfg = configs[currentMode];
+
+            if (currentMode === 'suburban' || currentMode === 'existing') {
+                radiusText.textContent = value.toFixed(2);
+            } else {
+                radiusText.textContent = Math.round(value);
+            }
+
+            const percent = (value / cfg.maxRadius) * 100;
+            sliderFill.style.width = `${percent}%`;
+            sliderHandle.style.left = `calc(${percent}% - 14px)`;
+
+            const radiusInMeters = (currentMode === 'suburban' || currentMode === 'existing') ? (value * 1000) : value;
+            geofenceCircle.setRadius(radiusInMeters);
+
+            memberMarkers.forEach(item => {
+                const distance = map.distance(cfg.center, item.coords);
+                const el = document.getElementById(`marker-${item.id}`);
+                if (el) {
+                    if (distance <= radiusInMeters) {
+                        el.classList.remove('state-outside');
+                        el.classList.add('state-inside');
+                    } else {
+                        el.classList.remove('state-inside');
+                        el.classList.add('state-outside');
+                    }
+                }
+            });
+        }
+
+        // Handle slider drag interactively
+        function setupSliderDrag() {
+            let isDragging = false;
+
+            function onStart(e) {
+                isDragging = true;
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                const cfg = configs[currentMode];
+                const wrapperRect = sliderWrapper.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let percent = ((clientX - wrapperRect.left) / wrapperRect.width) * 100;
+                percent = Math.max(0, Math.min(100, percent));
+                const value = (percent / 100) * cfg.maxRadius;
+                updateSliderUI(value);
+            }
+
+            function onEnd() {
+                isDragging = false;
+            }
+
+            sliderHandle.addEventListener('mousedown', onStart);
+            sliderHandle.addEventListener('touchstart', onStart, { passive: false });
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        }
+
+        // Initialize on window load
+        window.addEventListener('load', () => {
+            const cfg = configs.suburban;
+            cfg.members.forEach(m => {
+                const mIcon = L.divIcon({
+                    className: 'custom-member-icon',
+                    html: `
+                        <div class="member-marker-container state-inside visible" id="marker-${m.id}">
+                            <div class="member-pulse-ring"></div>
+                            <div class="member-pin-inner">
+                                <div class="member-pin-body">
+                                    <div class="member-pin-center ${m.colorClass}">${m.id}</div>
+                                </div>
+                                <div class="member-pin-shadow"></div>
+                            </div>
+                            <div class="member-alert-badge">!</div>
+                        </div>
+                    `,
+                    iconSize: [34, 36],
+                    iconAnchor: [17, 36]
+                });
+
+                const markerObj = L.marker(m.coords, { icon: mIcon }).addTo(map);
+                memberMarkers.push({
+                    id: m.id,
+                    coords: m.coords,
+                    marker: markerObj
+                });
+            });
+
+            // Modal Event Listeners
+            const geofenceModal = document.getElementById('geofenceModal');
+            const geofenceBtn = document.getElementById('geofenceBtn');
+            const btnCreateFence = document.getElementById('btnCreateFence');
+            const btnCloseModal = document.getElementById('btnCloseModal');
+
+            geofenceBtn.addEventListener('click', () => {
+                geofenceModal.classList.add('active');
+            });
+
+            btnCloseModal.addEventListener('click', () => {
+                geofenceModal.classList.remove('active');
+            });
+
+            geofenceModal.addEventListener('click', (e) => {
+                if (e.target === geofenceModal) {
+                    geofenceModal.classList.remove('active');
+                }
+            });
+
+            btnCreateFence.addEventListener('click', () => {
+                geofenceModal.classList.remove('active');
+                showGeofenceState();
+            });
+
+            // Initialize custom dropdowns
+            initCustomDropdown('teamSelectDropdown');
+            initCustomDropdown('modalSelectDropdown');
+
+            selExistingFence.addEventListener('change', () => {
+                geofenceModal.classList.remove('active');
+                showGeofenceState();
+            });
+
+            // Toggle expansion of team float card
+            const teamFloatCard = document.getElementById('teamFloatCard');
+            const teamFloatHeader = document.getElementById('teamFloatHeader');
+            teamFloatHeader.addEventListener('click', () => {
+                teamFloatCard.classList.toggle('expanded');
+            });
+
+            // Dropdown select change handler
+            teamSelect.addEventListener('change', () => {
+                const teamAvatars = document.getElementById('teamAvatars');
+                const cfg = configs[currentMode];
+                if (teamSelect.value === 'alpha') {
+                    teamAvatars.style.display = 'flex';
+                    cfg.members.forEach(m => {
+                        const el = document.getElementById(`marker-${m.id}`);
+                        if (el) el.classList.add('visible');
+                    });
+                    const currentVal = parseFloat(radiusText.textContent) || cfg.initialRadius;
+                    updateSliderUI(currentVal);
+                } else {
+                    teamAvatars.style.display = 'none';
+                    cfg.members.forEach(m => {
+                        const el = document.getElementById(`marker-${m.id}`);
+                        if (el) el.classList.remove('visible');
+                    });
+                }
+            });
+
+            // Setup slider drag interaction
+            setupSliderDrag();
+
+            // Close button for bottom sheet
+            const sheetCloseBtn = document.getElementById('sheetCloseBtn');
+            sheetCloseBtn.addEventListener('click', () => {
+                bottomSheet.style.transform = 'translateY(115%)';
+            });
+
+            // Screenshot button
+            const screenshotBtn = document.getElementById('screenshotBtn');
+            screenshotBtn.addEventListener('click', () => {
+                const phoneFrame = document.querySelector('.phone-frame');
+                html2canvas(phoneFrame, {
+                    useCORS: true,
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'geofence_screenshot.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            });
+
+            // Show geofence immediately on load
+            geofenceBtn.style.display = 'flex';
+            showGeofenceState();
+        });
+    </script>
+</body>
+</html>

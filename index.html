@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Add Geofence - MESHX1</title>
+    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="leaflet.css">
+    <script src="leaflet.js"></script>
+    <script src="lucide.js"></script>
+</head>
+
+<body>
+    <div class="app-shell">
+        <!-- iOS Status Bar -->
+        <div class="ios-status-bar">
+            <div class="status-left">
+                <span>9:41</span>
+            </div>
+            <div class="status-right">
+                <div class="ios-signal">
+                    <span class="bar-1"></span>
+                    <span class="bar-2"></span>
+                    <span class="bar-3"></span>
+                    <span class="bar-4"></span>
+                </div>
+                <i data-lucide="wifi" style="width: 14px; height: 14px; stroke-width: 2.5;"></i>
+                <div class="ios-battery">
+                    <div class="ios-battery-level"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Header -->
+        <header class="nav-header">
+            <button class="back-btn" onclick="handleBack()" title="Back">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <h1 class="nav-title">Add Geofence</h1>
+            <div class="header-placeholder"></div>
+        </header>
+
+        <!-- Map Workspace Area -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <!-- Floating Control Buttons (Right aligned, outside map-container to avoid overflow:hidden clipping) -->
+        <div class="map-controls">
+            <!-- Zoom Control Group -->
+            <div class="zoom-box">
+                <div class="zoom-btn" onclick="adjustZoom(0.1)" title="Zoom In">
+                    <!-- Use custom inline SVG representing add/plus -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 5v14M5 12h14" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="zoom-divider"></div>
+                <div class="zoom-btn" onclick="adjustZoom(-0.1)" title="Zoom Out">
+                    <!-- Use custom inline SVG representing subtract/minus -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 12h14" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Layers Control -->
+            <div class="control-circle" onclick="toggleLayers()" title="Layers">
+                <!-- Custom inline SVG representing layers -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <!-- Filter Control -->
+            <div class="control-circle" onclick="toggleFilter()" title="Filter">
+                <!-- Custom inline SVG representing filter_alt -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Configuration Bottom Sheet -->
+        <div class="bottom-sheet">
+            <h2 class="sheet-title">Geofence Settings</h2>
+
+            <!-- Radius Segment -->
+            <div class="radius-section">
+                <div class="radius-header">
+                    <span class="radius-label">Geofence Radius</span>
+                    <div class="radius-value-container">
+                        <span class="radius-number" id="radiusVal">1.08</span>
+                        <span class="radius-unit">km</span>
+                    </div>
+                </div>
+
+                <!-- Range Slider Component -->
+                <div class="slider-wrapper">
+                    <input type="range" class="custom-slider" id="radiusSlider" min="0" max="5" step="0.01" value="1.08">
+                    <!-- Sliders tick values -->
+                    <div class="slider-ticks">
+                        <span class="tick-label">0</span>
+                        <span class="tick-label">1km</span>
+                        <span class="tick-label">2km</span>
+                        <span class="tick-label">3km</span>
+                        <span class="tick-label">4km</span>
+                        <span class="tick-label">5km</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monitor Group Segment -->
+            <div class="group-section">
+                <h3 class="group-title">Monitor Group</h3>
+                <p class="group-subtitle">Select group chat, auto enroll all members</p>
+
+                <!-- Search Input box -->
+                <div class="search-bar">
+                    <i data-lucide="search" class="search-icon" style="width: 16px; height: 16px;"></i>
+                    <input type="text" class="search-input" placeholder="Search Group" id="searchInput">
+                </div>
+
+                <!-- Group details list card -->
+                <div class="team-card">
+                    <div class="team-icon-circle">
+                        <!-- Standard local people SVG representing the team -->
+                        <img src="ICON/people.svg" alt="Team Icon">
+                    </div>
+                    <div class="team-info">
+                        <span class="team-name">Team Alpha</span>
+                        <div class="avatar-row">
+                            <span class="avatar-pill avatar-1">K</span>
+                            <span class="avatar-pill avatar-2">M</span>
+                            <span class="avatar-pill avatar-3">X</span>
+                            <span class="avatar-pill avatar-4">T</span>
+                            <span class="avatar-pill avatar-5">Y</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Publish Geofence Trigger Button -->
+            <button class="btn-publish" id="publishBtn" onclick="handlePublish()">
+                Publish Geofence
+            </button>
+        </div>
+    </div>
+
+    <!-- Script file containing reactive state and animation handling -->
+    <script src="script.js?v=10"></script>
+</body>
+
+</html>

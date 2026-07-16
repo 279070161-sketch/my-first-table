@@ -1,0 +1,778 @@
+/* Add Geofence Mobile Project Stylesheet */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --primary: #7cd118;      /* Geofence Green */
+    --primary-hover: #6cb515;
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --muted: #f8fafc;
+    --muted-foreground: #64748b;
+    --border: #e2e8f0;
+    --radius: 20px;
+    --shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+/* Global Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background-color: #f1f5f9;
+    color: var(--foreground);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Mobile Simulator Framework */
+.app-shell {
+    width: 100%;
+    max-width: 412px;
+    height: 100vh;
+    max-height: 860px;
+    background: var(--background);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 40px;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
+    border: 8px solid #1e293b; /* Phone boundary frame */
+}
+
+/* iOS Status Bar */
+.ios-status-bar {
+    height: 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px 0;
+    background: #ffffff;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #000000;
+    z-index: 100;
+    user-select: none;
+}
+
+.status-left {
+    display: flex;
+    align-items: center;
+}
+
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ios-signal {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 10px;
+    width: 17px;
+}
+
+.ios-signal span {
+    width: 3px;
+    background: #000000;
+    border-radius: 0.5px;
+}
+
+.ios-signal .bar-1 { height: 3px; }
+.ios-signal .bar-2 { height: 5px; }
+.ios-signal .bar-3 { height: 7px; }
+.ios-signal .bar-4 { height: 10px; }
+
+.ios-battery {
+    width: 22px;
+    height: 11.5px;
+    border: 1px solid #000000;
+    border-radius: 3.5px;
+    padding: 1px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.ios-battery-level {
+    height: 100%;
+    width: 85%;
+    background: #000000;
+    border-radius: 2px;
+}
+
+.ios-battery::after {
+    content: '';
+    position: absolute;
+    right: -2.5px;
+    top: 3px;
+    width: 1.5px;
+    height: 4px;
+    background: #000000;
+    border-radius: 0 1px 1px 0;
+}
+
+/* Navigation Header */
+.nav-header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: #ffffff;
+    z-index: 100;
+    user-select: none;
+    position: relative;
+}
+
+.back-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    color: #000000;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.back-btn:hover {
+    background-color: #f1f5f9;
+}
+
+.back-btn:active {
+    transform: scale(0.92);
+}
+
+.back-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2.5;
+}
+
+.nav-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #000000;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    letter-spacing: -0.02em;
+}
+
+.header-placeholder {
+    width: 40px;
+}
+
+/* Map Area Container */
+.map-container {
+    flex: 1;
+    position: relative;
+    background-color: #e2e8f0;
+    overflow: hidden;
+    width: 100%;
+    z-index: 1;
+}
+
+.map-bg-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    user-select: none;
+    pointer-events: none;
+    transform-origin: center center;
+    transform: scale(1.0);
+}
+
+/* Geofence Overlay Circle */
+.geofence-circle {
+    position: absolute;
+    top: 31%; /* Center on pin position in Barcelona map */
+    left: 48.5%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--primary);
+    background: rgba(124, 209, 24, 0.22);
+    border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+    transition: width 0.05s ease-out, height 0.05s ease-out;
+}
+
+/* Pulsing radar effect */
+.geofence-beacon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background: rgba(124, 209, 24, 0.45);
+    border-radius: 50%;
+    animation: beacon-pulse 2.4s infinite ease-out;
+    pointer-events: none;
+}
+
+@keyframes beacon-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.6);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.4);
+        opacity: 0;
+    }
+}
+
+/* Leaflet geofence SVG circle animations */
+
+/* Stroke dashes march around the perimeter — seamless loop */
+@keyframes geofence-dash-march {
+    from { stroke-dashoffset: 0; }
+    to   { stroke-dashoffset: -24; }  /* exactly 1 unit: dash(16) + gap(8) = 24 */
+}
+
+/* Fill breathes in & out gently */
+@keyframes geofence-fill-breathe {
+    0%, 100% { fill-opacity: 0.14; }
+    50%       { fill-opacity: 0.30; }
+}
+
+/* Apply to the SVG path element directly via JS class injection */
+.geofence-animated {
+    stroke-dasharray: 16 8;          /* dash=16 gap=8, unit=24 */
+    will-change: stroke-dashoffset;
+    animation:
+        geofence-dash-march   2s linear infinite,
+        geofence-fill-breathe 3.2s ease-in-out infinite;
+}
+
+/* Real Map Container */
+#map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #f1f5f9;
+    background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+}
+
+/* Mild saturation boost on the Google Maps tile layer only, leaving overlay circle and marker untouched */
+.leaflet-tile-pane {
+    filter: saturate(1.22) contrast(1.02);
+}
+
+/* Custom Leaflet Teardrop Map Pin Icon */
+.custom-pin-icon {
+    background: none !important;
+    border: none !important;
+    overflow: visible !important;
+}
+
+.map-pin-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.15));
+    user-select: none;
+    pointer-events: none;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+}
+
+.pin-body {
+    width: 44px;
+    height: 44px;
+    background: #ffffff;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.5px solid rgba(0, 0, 0, 0.03);
+}
+
+.pin-inner-circle {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    border-radius: 50%;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.pin-inner-circle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.pin-shadow {
+    width: 10px;
+    height: 4px;
+    background: rgba(15, 23, 42, 0.25);
+    border-radius: 50%;
+    margin-top: -1px;
+    filter: blur(0.5px);
+}
+
+/* Floating Controls */
+.map-controls {
+    position: absolute;
+    right: 12px;
+    top: 112px; /* aligned to the top-right of the map container */
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    user-select: none;
+}
+
+/* combined zoom in/out card */
+.zoom-box {
+    width: 36px;
+    height: 72px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.zoom-btn {
+    width: 100%;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    transition: background-color 0.15s;
+}
+
+.zoom-btn:hover {
+    background-color: rgba(248, 250, 252, 0.5);
+}
+
+.zoom-btn:active {
+    background-color: rgba(241, 245, 249, 0.6);
+}
+
+.zoom-btn svg {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    stroke-width: 2.5;
+}
+
+.zoom-divider {
+    width: 24px;
+    height: 1px;
+    background: rgba(226, 232, 240, 0.6);
+}
+
+/* Single Circle Map Button */
+.control-circle {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.control-circle:hover {
+    background-color: rgba(248, 250, 252, 0.5);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+}
+
+.control-circle:active {
+    transform: scale(0.95);
+}
+
+.control-circle svg {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    stroke-width: 2.2;
+}
+
+/* Bottom Sheet - Redesigned as an inset floating card to prevent bottom rounded corners overlap bleed */
+.bottom-sheet {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 28px; /* Rounded all 4 corners */
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    padding: 20px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 30;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.sheet-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #000000;
+    letter-spacing: -0.02em;
+}
+
+/* Geofence Radius slider component */
+.radius-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.radius-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.radius-label {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.radius-value-container {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+}
+
+.radius-number {
+    font-size: 1.85rem;
+    font-weight: bold;
+    color: #000000;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.radius-unit {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.slider-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+/* Styled HTML5 range slider */
+.custom-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    outline: none;
+    background: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Slider thumb style (Webkit) */
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 4px solid var(--primary);
+    box-shadow: 0 3px 10px rgba(124, 209, 24, 0.35);
+    cursor: pointer;
+    transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
+}
+
+.custom-slider::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+}
+
+/* Firefox thumb support */
+.custom-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 4px solid var(--primary);
+    box-shadow: 0 3px 10px rgba(124, 209, 24, 0.35);
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+/* Tick markings below slider */
+.slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+    margin-top: 6px;
+}
+
+.tick-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    width: 34px;
+    text-align: center;
+}
+
+.tick-label:first-child {
+    text-align: left;
+    width: 10px;
+}
+
+.tick-label:last-child {
+    text-align: right;
+    width: 28px;
+}
+
+/* Group segment */
+.group-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.group-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.group-subtitle {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-top: -6px;
+}
+
+/* Search input bar */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(248, 250, 252, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(226, 232, 240, 0.5);
+    border-radius: 20px;
+    padding: 0 16px;
+    height: 42px;
+    width: 100%;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.search-bar:focus-within {
+    border-color: var(--primary);
+    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 0 3px rgba(124, 209, 24, 0.08);
+}
+
+.search-icon {
+    color: #94a3b8;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.88rem;
+    width: 100%;
+    font-weight: 500;
+    color: #0f172a;
+}
+
+.search-input::placeholder {
+    color: #94a3b8;
+}
+
+/* Team information list card */
+.team-card {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 12px 16px;
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.team-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.team-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fef9c3; /* Soft mockup yellow */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.team-icon-circle img {
+    width: 20px;
+    height: 20px;
+    /* Inverts grey colors to the mockup's custom deep brown theme #854d0e */
+    filter: invert(24%) sepia(87%) saturate(628%) hue-rotate(15deg) brightness(91%) contrast(92%);
+}
+
+.team-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.team-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.avatar-row {
+    display: flex;
+    padding-left: 0;
+}
+
+.avatar-pill {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    font-size: 0.65rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    margin-left: -4px; /* Reduced negative margin for clean, spacious overlap */
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.avatar-pill:first-child {
+    margin-left: 0;
+}
+
+/* Mockup Avatar Color Palettes */
+.avatar-1 { background-color: #fef08a; color: #854d0e; z-index: 5; } /* Yellow */
+.avatar-2 { background-color: #bfdbfe; color: #1e40af; z-index: 4; } /* Blue */
+.avatar-3 { background-color: #bbf7d0; color: #166534; z-index: 3; } /* Green */
+.avatar-4 { background-color: #fecdd3; color: #9f1239; z-index: 2; } /* Red/Pink */
+.avatar-5 { background-color: #e9d5ff; color: #6b21a8; z-index: 1; } /* Purple */
+
+/* CTA Publish Button */
+.btn-publish {
+    width: 100%;
+    height: 48px;
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 24px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(124, 209, 24, 0.35);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.btn-publish:hover {
+    background: var(--primary-hover);
+    box-shadow: 0 6px 20px rgba(124, 209, 24, 0.45);
+    transform: translateY(-1px);
+}
+
+.btn-publish:active {
+    transform: scale(0.97) translateY(0);
+    box-shadow: 0 2px 6px rgba(124, 209, 24, 0.2);
+}
+
+.btn-publish:disabled {
+    background: #cbd5e1;
+    color: #94a3b8;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Rotating Loader Animation */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
